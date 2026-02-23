@@ -42,34 +42,42 @@ class DebateAgent:
         return response["message"]["content"], tokens_used
 
 
-def should_continue_debate(judge_agent, conversation_history, max_rounds=3):
+def should_continue_debate(judge_agent, conversation_history, max_rounds=10):
     """Ask the judge if the debate should continue or if there's enough information to declare a winner"""
     judge_prompt = """
     Based on the debate so far, do you have enough information to make a final judgment, or should the debaters continue?
 
-    Consider:
-    - Have both sides presented substantial arguments?
-    - Has there been adequate rebuttal and counter-rebuttal?
-    - Are you confident in your ability to declare a winner based on the current arguments?
+    You should recommend stopping the debate ("JUDGMENT READY") if:
+    - Both sides have presented at least one argument
+    - There has been some attempt at rebuttal
+    - You can form a reasonable opinion based on what's been said, even if it's not definitive
+    - The topic is one where a layperson can reasonably judge (like ethical or practical matters)
 
-    Respond with exactly one of these two phrases:
-    "CONTINUE" if you think more rounds would be beneficial
-    "JUDGMENT READY" if you have enough information to make a final decision
+    You should recommend continuing ("CONTINUE") only if:
+    - One side hasn't presented a meaningful argument
+    - There's been no rebuttal from either side
+    - Critical information is missing that would be necessary for any judgment
+
+    For topics involving specialized knowledge (medicine, law, etc.), you can still make a judgment based on the arguments presented.
+
+    Respond with exactly: "JUDGMENT READY" or "CONTINUE"
 
     Do not include any other text in your response.
     """
 
     judge_response, _ = judge_agent.respond(judge_prompt, conversation_history)
 
+    print(f"Judge's decision: {judge_response}")
+
     # Parse the judge's response
     response_upper = judge_response.strip().upper()
-    if "CONTINUE" not in response_upper:
+    if "JUDGMENT READY" in response_upper:
         return False  # Stop the debate
     else:
         return True  # Continue the debate
 
 
-def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
+def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10):
     model_name = "my-gemma"
 
     # Create debate agents with different personas and temperatures
@@ -87,7 +95,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
 
     judge_agent = DebateAgent(
         model_name,
-        "You are a neutral judge. You will evaluate if enough information has been presented to make a final decision, or if more debate rounds are needed.",
+        "You are a decisive judge who can make reasonable judgments on practical matters. You don't need perfect information to make a call - you can make a judgment based on the arguments presented even if they aren't exhaustive.",
         judge_temp,
     )
 
@@ -137,6 +145,11 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
                 break
             else:
                 print("Judge indicates more debate is needed.\n")
+        elif round_count >= max_rounds:
+            print(
+                f"Maximum number of rounds ({max_rounds}) reached. Proceeding to final judgment.\n"
+            )
+            break
 
     # Judge's final verdict
     print(f"--- FINAL JUDGMENT (after {round_count} rounds) ---")
@@ -159,6 +172,7 @@ if __name__ == "__main__":
         "When parking your car in a parking lot, is it better to park straight-in or back-in?"
         # "The Standard Model of particle physics, which includes quarks, leptons, bosons, and antimatter, is a complete framework for understanding the fundamental nature of the Universe."
         # "String theory should be considered a failure since it has not been able to unify theories of everything by now. Scientists should stop spending resources on it and move on."
+        # "People should perform surgeries on themselves in order to save costs."
     )
     # Example with different temperatures for each persona
-    run_debate(topic, pro_temp=0.9, con_temp=0.7, judge_temp=0.3, max_rounds=3)
+    run_debate(topic, pro_temp=0.9, con_temp=0.7, judge_temp=0.3, max_rounds=5)
