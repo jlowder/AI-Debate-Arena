@@ -49,8 +49,9 @@ def should_continue_debate(judge_agent, conversation_history, max_rounds=10):
 
     You should recommend stopping the debate ("JUDGMENT READY") if:
     - Both sides have presented at least one argument
-    - There has been a reasonable attempt at rebuttal
-    - You can form a solid opinion based on what's been said
+    - There has been some attempt at rebuttal
+    - You can form a reasonable opinion based on what's been said, even if it's not definitive
+    - The topic is one where a layperson can reasonably judge (like ethical or practical matters)
 
     You should recommend continuing ("CONTINUE") only if:
     - One side hasn't presented a meaningful argument
@@ -98,7 +99,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10)
 
     judge_agent = DebateAgent(
         model_name,
-        "You are a neutral judge who can make reasonable judgments on practical matters. When asked if the debate should continue, provide a brief explanation of your reasoning.",
+        "You are a decisive judge who can make reasonable judgments on practical matters. You don't need perfect information to make a call - you can make a judgment based on the arguments presented even if they aren't exhaustive. When asked if the debate should continue, provide a brief explanation of your reasoning.",
         judge_temp,
     )
 
@@ -164,10 +165,10 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10)
 if __name__ == "__main__":
     topic = (
         # "Should Linux distributions move away from X11 entirely in favor of Wayland?"
-        # "When parking your car in a parking lot, pulling straight-in is better than backing-in"
+        "When parking your car in a parking lot, backing-in is better than pulling straight-in"
         # "The Standard Model of particle physics, which includes quarks, leptons, bosons, and antimatter, is not a complete framework for understanding the fundamental nature of the Universe."
         # "String theory should be considered a failure since it has not been able to unify theories of everything by now. Scientists should stop spending resources on it and move on."
-        "The USA should acquire Greenland"
+        # "The USA should acquire Greenland"
     )
     # Example with different temperatures for each persona
     run_debate(topic, pro_temp=0.9, con_temp=0.7, judge_temp=0.3, max_rounds=5)
