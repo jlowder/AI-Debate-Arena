@@ -117,6 +117,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
     # Track total tokens used
     total_tokens = 0
     rounds_run = 0
+    judge_decisions = []
 
     # Run debate rounds dynamically
     round_count = 0
@@ -138,9 +139,17 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
 
         # Ask the judge if we should continue
         if round_count < max_rounds:
-            if not should_continue_debate(
+            judge_continue, judge_reason = should_continue_debate(
                 judge_agent, conversation_history, max_rounds
-            )[0]:
+            )
+            judge_decisions.append(
+                {
+                    "round": round_count,
+                    "decision": "JUDGMENT READY" if not judge_continue else "CONTINUE",
+                    "reason": judge_reason,
+                }
+            )
+            if not judge_continue:
                 break
 
     # Judge's final verdict
@@ -155,6 +164,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
         "final_judgment": judge_response,
         "total_tokens": total_tokens,
         "rounds": rounds_run,
+        "judge_interim_decisions": judge_decisions,
     }
 
 
@@ -191,16 +201,16 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
 
     # Initialize conversation history
     conversation_history = []
-    initial_prompt = f"The topic is: {topic}. Start the debate."
+    initial_prompt = f"The topic is: {topic}  Start the debate."
     conversation_history.append(HumanMessage(content=initial_prompt))
 
     # Track total tokens used
     total_tokens = 0
     rounds_run = 0
 
-    # Display initial prompt
-    current_content = f"**Moderator:**\n{initial_prompt}\n\n---\n\n"
-    debate_placeholder.markdown(current_content)
+    # Display initial prompt with chat styling
+    current_content = f"<div style='background-color: #f0f0f0; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Moderator:</strong><br>{initial_prompt}</div>\n\n"
+    debate_placeholder.markdown(current_content, unsafe_allow_html=True)
     time.sleep(1)
 
     # Run debate rounds dynamically
@@ -210,8 +220,8 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
         rounds_run = round_count
 
         # Display round header
-        current_content += f"## Round {round_count}\n\n"
-        debate_placeholder.markdown(current_content)
+        current_content += f"<h3>Round {round_count}</h3>\n"
+        debate_placeholder.markdown(current_content, unsafe_allow_html=True)
         time.sleep(0.5)
 
         # Proponent speaks
@@ -220,9 +230,9 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
         total_tokens += pro_tokens
         conversation_history.append(AIMessage(content=f"Proponent: {pro_response}"))
 
-        # Display proponent response
-        current_content += f"**Proponent:**\n{pro_response}\n\n"
-        debate_placeholder.markdown(current_content)
+        # Display proponent response with green background
+        current_content += f"<div style='background-color: #e8f5e8; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Proponent:</strong><br>{pro_response}</div>\n\n"
+        debate_placeholder.markdown(current_content, unsafe_allow_html=True)
         time.sleep(1)
 
         # Opponent responds
@@ -231,44 +241,41 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
         total_tokens += con_tokens
         conversation_history.append(AIMessage(content=f"Opponent: {con_response}"))
 
-        # Display opponent response
-        current_content += f"**Opponent:**\n{con_response}\n\n"
-        debate_placeholder.markdown(current_content)
+        # Display opponent response with red background
+        current_content += f"<div style='background-color: #fce8e8; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Opponent:</strong><br>{con_response}</div>\n\n"
+        debate_placeholder.markdown(current_content, unsafe_allow_html=True)
         time.sleep(1)
 
         # Ask the judge if we should continue (except on last round)
         if round_count < max_rounds:
-            # Display judge checking message
-            current_content += f"**Judge (Interim Decision):**\nChecking if debate should continue...\n\n"
-            debate_placeholder.markdown(current_content)
+            # Display judge checking message with blue background
+            current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>Checking if debate should continue...</div>\n\n"
+            debate_placeholder.markdown(current_content, unsafe_allow_html=True)
             time.sleep(1)
 
             judge_continue, judge_reason = should_continue_debate(
                 judge_agent, conversation_history, max_rounds
             )
 
-            # Display judge's interim decision
+            # Display judge's interim decision with blue background
             if not judge_continue:
-                current_content += f"**Judge (Interim Decision):**\n🛑 JUDGMENT READY - {judge_reason}\n\n"
-                current_content += "Proceeding to final judgment early.\n\n"
-                debate_placeholder.markdown(current_content)
+                current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>🛑 JUDGMENT READY - {judge_reason}<br><em>Proceeding to final judgment early.</em></div>\n\n"
+                debate_placeholder.markdown(current_content, unsafe_allow_html=True)
                 time.sleep(1)
                 break
             else:
-                current_content += (
-                    f"**Judge (Interim Decision):**\n🔄 CONTINUE - {judge_reason}\n\n"
-                )
-                debate_placeholder.markdown(current_content)
+                current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>🔄 CONTINUE - {judge_reason}</div>\n\n"
+                debate_placeholder.markdown(current_content, unsafe_allow_html=True)
                 time.sleep(1)
 
         # Add spacing between rounds
-        current_content += "---\n\n"
-        debate_placeholder.markdown(current_content)
+        current_content += "<hr style='margin: 20px 0;'>\n\n"
+        debate_placeholder.markdown(current_content, unsafe_allow_html=True)
 
     # Judge's final verdict
-    current_content += f"## ⚖️ Final Judgment\n\n"
-    current_content += f"**Judge:**\nGenerating final judgment...\n\n"
-    debate_placeholder.markdown(current_content)
+    current_content += f"<h3>⚖️ Final Judgment</h3>\n"
+    current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge:</strong><br>Generating final judgment...</div>\n\n"
+    debate_placeholder.markdown(current_content, unsafe_allow_html=True)
     time.sleep(1)
 
     judge_input = "Provide your final judgment based on all arguments presented. Summarize the key points of both sides and declare a logical winner."
@@ -277,9 +284,9 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
     )
     total_tokens += judge_tokens
 
-    # Display final judgment
-    current_content += f"**Judge:**\n{judge_response}\n\n"
-    debate_placeholder.markdown(current_content)
+    # Display final judgment with blue background
+    current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge:</strong><br>{judge_response}</div>\n\n"
+    debate_placeholder.markdown(current_content, unsafe_allow_html=True)
 
     # Store results for later display
     st.session_state.debate_results = {
@@ -365,9 +372,11 @@ def main():
             # Display conversation
             st.subheader("💬 Conversation")
 
-            # Show initial prompt
-            st.markdown("**Moderator:**")
-            st.info(f"The topic is: {topic}. Start the debate.")
+            # Show initial prompt with chat styling
+            st.markdown(
+                f"<div style='background-color: #f0f0f0; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Moderator:</strong><br>The topic is: {topic}. Start the debate.</div>",
+                unsafe_allow_html=True,
+            )
 
             # Show each exchange
             for i, msg in enumerate(results["conversation_history"]):
@@ -377,20 +386,42 @@ def main():
                 if isinstance(msg, AIMessage):
                     content = msg.content
                     if content.startswith("Proponent:"):
-                        st.markdown("**Proponent:**")
-                        st.success(content.replace("Proponent: ", ""))
+                        st.markdown(
+                            f"<div style='background-color: #e8f5e8; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Proponent:</strong><br>{content.replace('Proponent: ', '')}</div>",
+                            unsafe_allow_html=True,
+                        )
                     elif content.startswith("Opponent:"):
-                        st.markdown("**Opponent:**")
-                        st.error(content.replace("Opponent: ", ""))
+                        st.markdown(
+                            f"<div style='background-color: #fce8e8; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Opponent:</strong><br>{content.replace('Opponent: ', '')}</div>",
+                            unsafe_allow_html=True,
+                        )
 
                 # Add spacing between exchanges
                 if i < len(results["conversation_history"]) - 1:
                     st.markdown("---")
 
+            # Show judge interim decisions if any
+            if results.get("judge_interim_decisions"):
+                st.subheader("👨‍⚖️ Judge Interim Decisions")
+                for decision in results["judge_interim_decisions"]:
+                    decision_text = f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Round {decision['round']}:</strong><br>"
+                    if decision["decision"] == "JUDGMENT READY":
+                        decision_text += (
+                            f"🛑 {decision['decision']} - {decision['reason']}"
+                        )
+                    else:
+                        decision_text += (
+                            f"🔄 {decision['decision']} - {decision['reason']}"
+                        )
+                    decision_text += "</div>"
+                    st.markdown(decision_text, unsafe_allow_html=True)
+
             # Show final judgment
             st.subheader("⚖️ Final Judgment")
-            st.markdown("**Judge:**")
-            st.info(results["final_judgment"])
+            st.markdown(
+                f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge:</strong><br>{results['final_judgment']}</div>",
+                unsafe_allow_html=True,
+            )
 
             # Show stats
             st.subheader("📊 Stats")
