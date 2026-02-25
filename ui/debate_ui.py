@@ -1,3 +1,5 @@
+import time
+
 import ollama
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -156,7 +158,140 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
     }
 
 
+def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
+    model_name = "my-gemma"
+
+    # Create debate agents with different personas and temperatures
+    pro_agent = DebateAgent(
+        model_name,
+        "You are an optimistic advocate. Support the topic with logic and enthusiasm. Be brief.",
+        pro_temp,
+    )
+
+    con_agent = DebateAgent(
+        model_name,
+        "You are a skeptical critic. Find flaws in the opponent's logic and argue against the topic. Be brief.",
+        con_temp,
+    )
+
+    judge_agent = DebateAgent(
+        model_name,
+        "You are a decisive judge who can make reasonable judgments on practical matters. You can make a judgment based on the arguments presented even if they aren't completely exhaustive. When asked if the debate should continue, provide a brief explanation of your reasoning.",
+        judge_temp,
+    )
+
+    final_judge_agent = DebateAgent(
+        model_name,
+        "You are a neutral judge. Summarize the key points of both sides and declare a logical winner.",
+        judge_temp,
+    )
+
+    # Create placeholder for live updates
+    debate_placeholder = st.empty()
+
+    # Initialize conversation history
+    conversation_history = []
+    initial_prompt = f"The topic is: {topic}. Start the debate."
+    conversation_history.append(HumanMessage(content=initial_prompt))
+
+    # Track total tokens used
+    total_tokens = 0
+    rounds_run = 0
+
+    # Display initial prompt
+    current_content = f"**Moderator:**\n{initial_prompt}\n\n---\n\n"
+    debate_placeholder.markdown(current_content)
+    time.sleep(1)
+
+    # Run debate rounds dynamically
+    round_count = 0
+    while round_count < max_rounds:
+        round_count += 1
+        rounds_run = round_count
+
+        # Display round header
+        current_content += f"## Round {round_count}\n\n"
+        debate_placeholder.markdown(current_content)
+        time.sleep(0.5)
+
+        # Proponent speaks
+        pro_input = "Present your argument."
+        pro_response, pro_tokens = pro_agent.respond(pro_input, conversation_history)
+        total_tokens += pro_tokens
+        conversation_history.append(AIMessage(content=f"Proponent: {pro_response}"))
+
+        # Display proponent response
+        current_content += f"**Proponent:**\n{pro_response}\n\n"
+        debate_placeholder.markdown(current_content)
+        time.sleep(1)
+
+        # Opponent responds
+        con_input = "Respond to the proponent's argument."
+        con_response, con_tokens = con_agent.respond(con_input, conversation_history)
+        total_tokens += con_tokens
+        conversation_history.append(AIMessage(content=f"Opponent: {con_response}"))
+
+        # Display opponent response
+        current_content += f"**Opponent:**\n{con_response}\n\n"
+        debate_placeholder.markdown(current_content)
+        time.sleep(1)
+
+        # Ask the judge if we should continue (except on last round)
+        if round_count < max_rounds:
+            # Display judge checking message
+            current_content += f"**Judge (Interim Decision):**\nChecking if debate should continue...\n\n"
+            debate_placeholder.markdown(current_content)
+            time.sleep(1)
+
+            judge_continue, judge_reason = should_continue_debate(
+                judge_agent, conversation_history, max_rounds
+            )
+
+            # Display judge's interim decision
+            if not judge_continue:
+                current_content += f"**Judge (Interim Decision):**\n🛑 JUDGMENT READY - {judge_reason}\n\n"
+                current_content += "Proceeding to final judgment early.\n\n"
+                debate_placeholder.markdown(current_content)
+                time.sleep(1)
+                break
+            else:
+                current_content += (
+                    f"**Judge (Interim Decision):**\n🔄 CONTINUE - {judge_reason}\n\n"
+                )
+                debate_placeholder.markdown(current_content)
+                time.sleep(1)
+
+        # Add spacing between rounds
+        current_content += "---\n\n"
+        debate_placeholder.markdown(current_content)
+
+    # Judge's final verdict
+    current_content += f"## ⚖️ Final Judgment\n\n"
+    current_content += f"**Judge:**\nGenerating final judgment...\n\n"
+    debate_placeholder.markdown(current_content)
+    time.sleep(1)
+
+    judge_input = "Provide your final judgment based on all arguments presented. Summarize the key points of both sides and declare a logical winner."
+    judge_response, judge_tokens = final_judge_agent.respond(
+        judge_input, conversation_history
+    )
+    total_tokens += judge_tokens
+
+    # Display final judgment
+    current_content += f"**Judge:**\n{judge_response}\n\n"
+    debate_placeholder.markdown(current_content)
+
+    # Store results for later display
+    st.session_state.debate_results = {
+        "conversation_history": conversation_history,
+        "final_judgment": judge_response,
+        "total_tokens": total_tokens,
+        "rounds": rounds_run,
+    }
+
+
 def main():
+
     st.set_page_config(page_title="Debate AI", page_icon="🗣️", layout="wide")
 
     st.title("🗣️ AI Debate Arena")
@@ -167,6 +302,8 @@ def main():
     # Initialize session state
     if "debate_results" not in st.session_state:
         st.session_state.debate_results = None
+    if "live_updates" not in st.session_state:
+        st.session_state.live_updates = False
 
     # Sidebar for settings
     with st.sidebar:
@@ -175,6 +312,9 @@ def main():
         pro_temp = st.slider("Proponent Creativity", 0.0, 1.0, 0.9)
         con_temp = st.slider("Opponent Creativity", 0.0, 1.0, 0.7)
         judge_temp = st.slider("Judge Strictness", 0.0, 1.0, 0.3)
+
+        st.divider()
+        st.checkbox("Show live debate updates", key="live_updates")
 
         st.divider()
         st.markdown("💡 **Tips:**")
@@ -190,64 +330,74 @@ def main():
 
     if st.button("🚀 Start Debate", type="primary"):
         if topic.strip():
-            with st.spinner("Debate in progress..."):
-                try:
-                    results = run_debate(
-                        topic,
-                        pro_temp=pro_temp,
-                        con_temp=con_temp,
-                        judge_temp=judge_temp,
-                        max_rounds=max_rounds,
-                    )
-                    st.session_state.debate_results = results
-                except Exception as e:
-                    st.error(f"Error running debate: {str(e)}")
+            if st.session_state.live_updates:
+                # Run debate with live updates
+                run_debate_live(
+                    topic,
+                    pro_temp=pro_temp,
+                    con_temp=con_temp,
+                    judge_temp=judge_temp,
+                    max_rounds=max_rounds,
+                )
+            else:
+                with st.spinner("Debate in progress..."):
+                    try:
+                        results = run_debate(
+                            topic,
+                            pro_temp=pro_temp,
+                            con_temp=con_temp,
+                            judge_temp=judge_temp,
+                            max_rounds=max_rounds,
+                        )
+                        st.session_state.debate_results = results
+                    except Exception as e:
+                        st.error(f"Error running debate: {str(e)}")
         else:
             st.warning("Please enter a debate topic")
 
-    # Display results
-    if st.session_state.debate_results:
-        st.divider()
-        st.header("🎭 Debate Results")
+        # Display results
+        if st.session_state.debate_results and not st.session_state.live_updates:
+            st.divider()
+            st.header("🎭 Debate Results")
 
-        results = st.session_state.debate_results
+            results = st.session_state.debate_results
 
-        # Display conversation
-        st.subheader("💬 Conversation")
+            # Display conversation
+            st.subheader("💬 Conversation")
 
-        # Show initial prompt
-        st.markdown("**Moderator:**")
-        st.info(f"The topic is: {topic}. Start the debate.")
+            # Show initial prompt
+            st.markdown("**Moderator:**")
+            st.info(f"The topic is: {topic}. Start the debate.")
 
-        # Show each exchange
-        for i, msg in enumerate(results["conversation_history"]):
-            if isinstance(msg, HumanMessage):
-                continue  # Skip initial prompt as we handled it above
+            # Show each exchange
+            for i, msg in enumerate(results["conversation_history"]):
+                if isinstance(msg, HumanMessage):
+                    continue  # Skip initial prompt as we handled it above
 
-            if isinstance(msg, AIMessage):
-                content = msg.content
-                if content.startswith("Proponent:"):
-                    st.markdown("**Proponent:**")
-                    st.success(content.replace("Proponent: ", ""))
-                elif content.startswith("Opponent:"):
-                    st.markdown("**Opponent:**")
-                    st.error(content.replace("Opponent: ", ""))
+                if isinstance(msg, AIMessage):
+                    content = msg.content
+                    if content.startswith("Proponent:"):
+                        st.markdown("**Proponent:**")
+                        st.success(content.replace("Proponent: ", ""))
+                    elif content.startswith("Opponent:"):
+                        st.markdown("**Opponent:**")
+                        st.error(content.replace("Opponent: ", ""))
 
-            # Add spacing between exchanges
-            if i < len(results["conversation_history"]) - 1:
-                st.markdown("---")
+                # Add spacing between exchanges
+                if i < len(results["conversation_history"]) - 1:
+                    st.markdown("---")
 
-        # Show final judgment
-        st.subheader("⚖️ Final Judgment")
-        st.markdown("**Judge:**")
-        st.info(results["final_judgment"])
+            # Show final judgment
+            st.subheader("⚖️ Final Judgment")
+            st.markdown("**Judge:**")
+            st.info(results["final_judgment"])
 
-        # Show stats
-        st.subheader("📊 Stats")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Rounds Completed", results["rounds"])
-        col2.metric("Total Tokens Used", results["total_tokens"])
-        col3.metric("Model Used", "my-gemma")
+            # Show stats
+            st.subheader("📊 Stats")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Rounds Completed", results["rounds"])
+            col2.metric("Total Tokens Used", results["total_tokens"])
+            col3.metric("Model Used", "my-gemma")
 
 
 if __name__ == "__main__":
