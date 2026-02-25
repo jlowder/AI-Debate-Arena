@@ -53,12 +53,12 @@ def should_continue_debate(judge_agent, conversation_history, max_rounds=3):
     You should recommend stopping the debate ("JUDGMENT READY") if:
     - Both sides have presented at least one argument
     - There has been some attempt at rebuttal
-    - You can form a reasonable opinion based on what's been said
+    - You can form a solid opinion based on what's been said
 
     You should recommend continuing ("CONTINUE") only if:
     - One side hasn't presented a meaningful argument
     - There's been no impactful rebuttal from either side
-    - Critical information is missing that would be necessary for any judgment
+    - Some information is missing that would be necessary for any judgment
 
     Respond with either:
     "JUDGMENT READY" if you have enough information to make a final decision
@@ -111,7 +111,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
 
     # Initialize conversation history
     conversation_history = []
-    initial_prompt = f"The topic is: {topic}. Start the debate."
+    initial_prompt = f"The topic is: <strong>{topic}</strong> Start the debate."
     conversation_history.append(HumanMessage(content=initial_prompt))
 
     # Track total tokens used
@@ -186,7 +186,7 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
 
     judge_agent = DebateAgent(
         model_name,
-        "You are a decisive judge who can make reasonable judgments on practical matters. You can make a judgment based on the arguments presented even if they aren't completely exhaustive. When asked if the debate should continue, provide a brief explanation of your reasoning.",
+        "You are a neutral judge who can make reasonable judgments on practical matters. You can make a judgment based on the arguments presented if enough information has been provided. When asked if the debate should continue, provide a brief explanation of your reasoning.",
         judge_temp,
     )
 
@@ -201,7 +201,7 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
 
     # Initialize conversation history
     conversation_history = []
-    initial_prompt = f"The topic is: {topic}  Start the debate."
+    initial_prompt = f"The topic is: <strong>{topic}</strong> Start the debate."
     conversation_history.append(HumanMessage(content=initial_prompt))
 
     # Track total tokens used
@@ -209,7 +209,7 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
     rounds_run = 0
 
     # Display initial prompt with chat styling
-    current_content = f"<div style='background-color: #f0f0f0; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Moderator:</strong><br>{initial_prompt}</div>\n\n"
+    current_content = f"<div style='background-color: #f0f0f0; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Moderator:</strong><br>The topic is: <strong>{topic}</strong> Start the debate.</div>\n\n"
     debate_placeholder.markdown(current_content, unsafe_allow_html=True)
     time.sleep(1)
 
@@ -296,6 +296,14 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
         "rounds": rounds_run,
     }
 
+    # Display statistics summary
+    st.divider()
+    st.subheader("📊 Stats")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Rounds Completed", rounds_run)
+    col2.metric("Total Tokens Used", total_tokens)
+    col3.metric("Model Used", "my-gemma")
+
 
 def main():
 
@@ -310,7 +318,7 @@ def main():
     if "debate_results" not in st.session_state:
         st.session_state.debate_results = None
     if "live_updates" not in st.session_state:
-        st.session_state.live_updates = False
+        st.session_state.live_updates = True
 
     # Sidebar for settings
     with st.sidebar:
@@ -374,7 +382,7 @@ def main():
 
             # Show initial prompt with chat styling
             st.markdown(
-                f"<div style='background-color: #f0f0f0; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Moderator:</strong><br>The topic is: {topic}. Start the debate.</div>",
+                f"<div style='background-color: #f0f0f0; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Moderator:</strong><br>The topic is: <strong>{topic}</strong> Start the debate.</div>",
                 unsafe_allow_html=True,
             )
 
