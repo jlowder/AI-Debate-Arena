@@ -259,12 +259,12 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
 
             # Display judge's interim decision with blue background
             if not judge_continue:
-                current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>🛑 JUDGMENT READY - {judge_reason}<br><em>Proceeding to final judgment early.</em></div>\n\n"
+                current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>🛑 {judge_reason}<br><em>Proceeding to final judgment early.</em></div>\n\n"
                 debate_placeholder.markdown(current_content, unsafe_allow_html=True)
                 time.sleep(1)
                 break
             else:
-                current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>🔄 CONTINUE - {judge_reason}</div>\n\n"
+                current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>🔄 {judge_reason}</div>\n\n"
                 debate_placeholder.markdown(current_content, unsafe_allow_html=True)
                 time.sleep(1)
 
@@ -414,13 +414,9 @@ def main():
                 for decision in results["judge_interim_decisions"]:
                     decision_text = f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Round {decision['round']}:</strong><br>"
                     if decision["decision"] == "JUDGMENT READY":
-                        decision_text += (
-                            f"🛑 {decision['decision']} - {decision['reason']}"
-                        )
+                        decision_text += f"🛑 {decision['reason']}"
                     else:
-                        decision_text += (
-                            f"🔄 {decision['decision']} - {decision['reason']}"
-                        )
+                        decision_text += f"🔄 {decision['reason']}"
                     decision_text += "</div>"
                     st.markdown(decision_text, unsafe_allow_html=True)
 
