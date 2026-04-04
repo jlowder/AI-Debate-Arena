@@ -340,7 +340,7 @@ def main():
     # Main input area
     topic = st.text_input(
         "Enter debate topic:",
-        "Should people perform their own surgeries to save costs?",
+        "C++ is better than Python for security.",
     )
 
     if st.button("🚀 Start Debate", type="primary"):

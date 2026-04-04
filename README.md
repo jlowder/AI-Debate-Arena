@@ -27,9 +27,11 @@ Run the main debate script:
 python debate_agents_lc.py
 ```
 
-Or with custom parameters:
+*Note: Topics and debate parameters (such as creativity levels and max rounds) are configured directly in the code at the bottom of the script.*
+
+You can also run a simpler version of the debate logic:
 ```
-python debate_agents_lc.py --topic "Your debate topic here" --max-rounds 5
+python debate_agents_simple.py
 ```
 
 ### Web UI Version
@@ -61,6 +63,7 @@ The UI allows you to:
 - Adjust debate parameters (number of rounds, creativity levels)
 - View the debate conversation in a chat-like interface
 - See the judge's final verdict and statistics
+- Watch the debate unfold in real-time with live updates
 
 ## Configuration
 
