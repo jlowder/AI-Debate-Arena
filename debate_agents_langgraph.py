@@ -15,6 +15,7 @@ class DebateState(TypedDict):
     con_temp: float
     judge_temp: float
     should_continue: bool
+    judge_reason: str
     final_verdict: str
 
 
@@ -86,7 +87,7 @@ def opponent_node(state: DebateState):
 
 def judge_node(state: DebateState):
     if state["round_count"] >= state["max_rounds"]:
-        return {"should_continue": False}
+        return {"should_continue": False, "judge_reason": "Maximum rounds reached."}
 
     model_name = "my-gemma"
     system_prompt = "You are a decisive judge who can make reasonable judgments on practical matters. You don't need perfect information to make a call - you can make a judgment based on the arguments presented even if they aren't exhaustive. When asked if the debate should continue, provide a brief explanation of your reasoning."
@@ -128,6 +129,7 @@ def judge_node(state: DebateState):
 
     return {
         "should_continue": should_continue,
+        "judge_reason": response,
         "total_tokens": state["total_tokens"] + tokens
     }
 
@@ -204,6 +206,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10)
         "con_temp": con_temp,
         "judge_temp": judge_temp,
         "should_continue": True,
+        "judge_reason": "",
         "final_verdict": ""
     }
 
