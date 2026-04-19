@@ -36,7 +36,8 @@ def chat_with_ollama(model_name, messages, temperature, api_token=None):
         # If API token is provided, we assume it's for a remote Ollama-compatible API
         # and we might need to set it in the headers.
         # Note: Ollama library's Client can take headers.
-        client = ollama.Client(headers={"Authorization": f"Bearer {api_token}"})
+        from ollama import Client
+        client = Client(headers={"Authorization": f"Bearer {api_token}"})
         response = client.chat(
             model=model_name,
             messages=formatted_messages,
@@ -59,8 +60,8 @@ def chat_with_ollama(model_name, messages, temperature, api_token=None):
 
 
 def proponent_node(state: DebateState):
-    model_name = state["model_name"]
-    api_token = state["api_token"]
+    model_name = state.get("model_name", "my-gemma")
+    api_token = state.get("api_token", "")
     system_prompt = "You are an optimistic advocate. Support the topic with logic and enthusiasm. Be brief."
 
     current_messages = [SystemMessage(content=system_prompt)] + state["messages"]
