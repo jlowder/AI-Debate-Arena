@@ -15,6 +15,7 @@ class DebateState(TypedDict):
     con_temp: float
     judge_temp: float
     should_continue: bool
+    judge_reason: str
     final_verdict: str
 
 
@@ -86,10 +87,10 @@ def opponent_node(state: DebateState):
 
 def judge_node(state: DebateState):
     if state["round_count"] >= state["max_rounds"]:
-        return {"should_continue": False}
+        return {"should_continue": False, "judge_reason": "Maximum rounds reached."}
 
     model_name = "my-gemma"
-    system_prompt = "You are a decisive judge who can make reasonable judgments on practical matters. You don't need perfect information to make a call - you can make a judgment based on the arguments presented even if they aren't exhaustive. When asked if the debate should continue, provide a brief explanation of your reasoning."
+    system_prompt = "You are a neutral judge who can make reasonable judgments on practical matters. You can make a judgment based on the arguments presented if enough information has been provided. When asked if the debate should continue, provide a brief explanation of your reasoning."
 
     judge_prompt = """
     Based on the debate so far, do you have enough information to make a final judgment, or should the debaters continue?
@@ -97,13 +98,12 @@ def judge_node(state: DebateState):
     You should recommend stopping the debate ("JUDGMENT READY") if:
     - Both sides have presented at least one argument
     - There has been some attempt at rebuttal
-    - You can form a reasonable opinion based on what's been said, even if it's not definitive
-    - The topic is one where a layperson can reasonably judge (like ethical or practical matters)
+    - You can form a solid opinion based on what's been said
 
     You should recommend continuing ("CONTINUE") only if:
     - One side hasn't presented a meaningful argument
-    - There's been no rebuttal from either side
-    - Critical information is missing that would be necessary for any judgment
+    - There's been no impactful rebuttal from either side
+    - Some information is missing that would be necessary for any judgment
 
     Respond with either:
     "JUDGMENT READY" if you have enough information to make a final decision
@@ -123,11 +123,14 @@ def judge_node(state: DebateState):
 
     print(f"Judge's decision: {response}")
 
+    # Parse the judge's response
     response_upper = response.strip().upper()
-    should_continue = response_upper.startswith("CONTINUE")
+    # We should continue unless "JUDGMENT READY" is present, which is how it's done in lc version
+    should_continue = "JUDGMENT READY" not in response_upper
 
     return {
         "should_continue": should_continue,
+        "judge_reason": response,
         "total_tokens": state["total_tokens"] + tokens
     }
 
@@ -191,7 +194,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10)
 
     print(f"\n--- DEBATE TOPIC: {topic} ---\n")
 
-    initial_prompt = f"The topic is: {topic}. Start the debate."
+    initial_prompt = f"The topic is: <strong>{topic}</strong> Start the debate."
 
     # Initial state
     initial_state = {
@@ -204,6 +207,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10)
         "con_temp": con_temp,
         "judge_temp": judge_temp,
         "should_continue": True,
+        "judge_reason": "",
         "final_verdict": ""
     }
 
