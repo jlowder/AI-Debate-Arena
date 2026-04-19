@@ -1,8 +1,9 @@
-import ollama
-from typing import Annotated, List, TypedDict, Dict, Any
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, BaseMessage
-from langgraph.graph import StateGraph, START, END
 import operator
+from typing import Annotated, Any, Dict, List, TypedDict
+
+import ollama
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langgraph.graph import END, START, StateGraph
 
 
 class DebateState(TypedDict):
@@ -37,6 +38,7 @@ def chat_with_ollama(model_name, messages, temperature, api_token=None):
         # and we might need to set it in the headers.
         # Note: Ollama library's Client can take headers.
         from ollama import Client
+
         client = Client(headers={"Authorization": f"Bearer {api_token}"})
         response = client.chat(
             model=model_name,
@@ -70,14 +72,16 @@ def proponent_node(state: DebateState):
     # We add the "human" instruction for the agent
     current_messages.append(HumanMessage(content=pro_input))
 
-    response, tokens = chat_with_ollama(model_name, current_messages, state["pro_temp"], api_token=api_token)
+    response, tokens = chat_with_ollama(
+        model_name, current_messages, state["pro_temp"], api_token=api_token
+    )
 
     print(f"PRO (Tokens: {tokens}): {response}\n")
 
     return {
         "messages": [AIMessage(content=f"Proponent: {response}")],
         "total_tokens": state["total_tokens"] + tokens,
-        "round_count": state["round_count"] + 1
+        "round_count": state["round_count"] + 1,
     }
 
 
@@ -91,13 +95,15 @@ def opponent_node(state: DebateState):
 
     current_messages.append(HumanMessage(content=con_input))
 
-    response, tokens = chat_with_ollama(model_name, current_messages, state["con_temp"], api_token=api_token)
+    response, tokens = chat_with_ollama(
+        model_name, current_messages, state["con_temp"], api_token=api_token
+    )
 
     print(f"CON (Tokens: {tokens}): {response}\n")
 
     return {
         "messages": [AIMessage(content=f"Opponent: {response}")],
-        "total_tokens": state["total_tokens"] + tokens
+        "total_tokens": state["total_tokens"] + tokens,
     }
 
 
@@ -136,7 +142,9 @@ def judge_node(state: DebateState):
     current_messages = [SystemMessage(content=system_prompt)] + state["messages"]
     current_messages.append(HumanMessage(content=judge_prompt))
 
-    response, tokens = chat_with_ollama(model_name, current_messages, state["judge_temp"], api_token=api_token)
+    response, tokens = chat_with_ollama(
+        model_name, current_messages, state["judge_temp"], api_token=api_token
+    )
 
     print(f"Judge's decision: {response}")
 
@@ -148,7 +156,7 @@ def judge_node(state: DebateState):
     return {
         "should_continue": should_continue,
         "judge_reason": response,
-        "total_tokens": state["total_tokens"] + tokens
+        "total_tokens": state["total_tokens"] + tokens,
     }
 
 
@@ -157,20 +165,19 @@ def final_judge_node(state: DebateState):
     api_token = state.get("api_token", "")
     system_prompt = "You are a neutral judge. Summarize the key points of both sides and declare a logical winner."
 
-    judge_input = "Provide your final judgment based on all arguments presented. Summarize the key points of both sides and declare a logical winner."
+    judge_input = "Provide your final judgment based on all arguments presented. Summarize the key points of both sides and declare a logical winner. Do not declare a tie - always pick a winner no matter how close it is, and defend your decision."
 
     current_messages = [SystemMessage(content=system_prompt)] + state["messages"]
     current_messages.append(HumanMessage(content=judge_input))
 
-    response, tokens = chat_with_ollama(model_name, current_messages, state["judge_temp"], api_token=api_token)
+    response, tokens = chat_with_ollama(
+        model_name, current_messages, state["judge_temp"], api_token=api_token
+    )
 
     print(f"--- FINAL JUDGMENT (after {state['round_count']} rounds) ---")
     print(f"--- JUDGE'S VERDICT (Tokens: {tokens}) ---\n{response}")
 
-    return {
-        "final_verdict": response,
-        "total_tokens": state["total_tokens"] + tokens
-    }
+    return {"final_verdict": response, "total_tokens": state["total_tokens"] + tokens}
 
 
 def router(state: DebateState):
@@ -180,7 +187,15 @@ def router(state: DebateState):
         return "final_judge"
 
 
-def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10, model_name="my-gemma", api_token=""):
+def run_debate(
+    topic,
+    pro_temp=0.8,
+    con_temp=0.8,
+    judge_temp=0.5,
+    max_rounds=10,
+    model_name="my-gemma",
+    api_token="",
+):
     # Initialize the graph
     workflow = StateGraph(DebateState)
 
@@ -197,12 +212,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10,
 
     # Add conditional edges from judge
     workflow.add_conditional_edges(
-        "judge",
-        router,
-        {
-            "proponent": "proponent",
-            "final_judge": "final_judge"
-        }
+        "judge", router, {"proponent": "proponent", "final_judge": "final_judge"}
     )
 
     workflow.add_edge("final_judge", END)
@@ -228,7 +238,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10,
         "judge_reason": "",
         "final_verdict": "",
         "model_name": model_name,
-        "api_token": api_token
+        "api_token": api_token,
     }
 
     # Run the graph

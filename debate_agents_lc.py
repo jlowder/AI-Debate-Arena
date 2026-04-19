@@ -149,7 +149,7 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10)
 
     # Judge's final verdict
     print(f"--- FINAL JUDGMENT (after {round_count} rounds) ---")
-    judge_input = "Provide your final judgment based on all arguments presented. Summarize the key points of both sides and declare a logical winner."
+    judge_input = "Provide your final judgment based on all arguments presented. Summarize the key points of both sides and declare a logical winner. Do not declare a tie - always pick a winner no matter how close it is, and defend your decision."
     judge_response, judge_tokens = final_judge_agent.respond(
         judge_input, conversation_history
     )

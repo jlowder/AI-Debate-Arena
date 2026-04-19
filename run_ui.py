@@ -20,9 +20,13 @@ def main():
         print(f"Error: UI script not found at {ui_script}")
         sys.exit(1)
 
+    # Set PYTHONPATH to include the current directory so it can find the agent modules
+    env = os.environ.copy()
+    env["PYTHONPATH"] = script_dir + (os.pathsep + env.get("PYTHONPATH", "") if env.get("PYTHONPATH") else "")
+
     # Run the Streamlit app
     try:
-        subprocess.run(["streamlit", "run", ui_script], check=True)
+        subprocess.run(["streamlit", "run", ui_script], check=True, env=env)
     except FileNotFoundError:
         print(
             "Error: Streamlit not found. Please install it with 'pip install streamlit'"
