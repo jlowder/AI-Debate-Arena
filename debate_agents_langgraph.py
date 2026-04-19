@@ -124,8 +124,10 @@ def judge_node(state: DebateState):
 
     print(f"Judge's decision: {response}")
 
+    # Parse the judge's response
     response_upper = response.strip().upper()
-    should_continue = response_upper.startswith("CONTINUE")
+    # We should continue unless "JUDGMENT READY" is present, which is how it's done in lc version
+    should_continue = "JUDGMENT READY" not in response_upper
 
     return {
         "should_continue": should_continue,
