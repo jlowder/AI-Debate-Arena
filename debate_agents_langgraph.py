@@ -124,7 +124,7 @@ def judge_node(state: DebateState):
     print(f"Judge's decision: {response}")
 
     response_upper = response.strip().upper()
-    should_continue = "JUDGMENT READY" not in response_upper
+    should_continue = response_upper.startswith("CONTINUE")
 
     return {
         "should_continue": should_continue,
