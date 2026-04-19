@@ -1,5 +1,8 @@
 # AI Debate System
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+
 A system for running automated debates between AI agents with a judge to evaluate the arguments.
 
 ## Features
