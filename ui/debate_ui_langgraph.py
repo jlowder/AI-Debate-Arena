@@ -100,7 +100,7 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
 
     initial_state = {
         "topic": topic,
-        "messages": [HumanMessage(content=f"The topic is: {topic}. Start the debate.")],
+        "messages": [HumanMessage(content=f"The topic is: <strong>{topic}</strong> Start the debate.")],
         "round_count": 0,
         "max_rounds": max_rounds,
         "total_tokens": 0,
