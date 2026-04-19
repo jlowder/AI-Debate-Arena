@@ -59,8 +59,8 @@ def chat_with_ollama(model_name, messages, temperature, api_token=None):
 
 
 def proponent_node(state: DebateState):
-    model_name = state.get("model_name", "my-gemma")
-    api_token = state.get("api_token", "")
+    model_name = state["model_name"]
+    api_token = state["api_token"]
     system_prompt = "You are an optimistic advocate. Support the topic with logic and enthusiasm. Be brief."
 
     current_messages = [SystemMessage(content=system_prompt)] + state["messages"]
