@@ -17,9 +17,11 @@ class DebateState(TypedDict):
     should_continue: bool
     judge_reason: str
     final_verdict: str
+    model_name: str
+    api_token: str
 
 
-def chat_with_ollama(model_name, messages, temperature):
+def chat_with_ollama(model_name, messages, temperature, api_token=None):
     """Direct call to Ollama to get response and token information"""
     formatted_messages = []
     for msg in messages:
@@ -30,11 +32,23 @@ def chat_with_ollama(model_name, messages, temperature):
         elif isinstance(msg, AIMessage):
             formatted_messages.append({"role": "assistant", "content": msg.content})
 
-    response = ollama.chat(
-        model=model_name,
-        messages=formatted_messages,
-        options={"temperature": temperature},
-    )
+    if api_token:
+        # If API token is provided, we assume it's for a remote Ollama-compatible API
+        # and we might need to set it in the headers.
+        # Note: Ollama library's Client can take headers.
+        from ollama import Client
+        client = Client(headers={"Authorization": f"Bearer {api_token}"})
+        response = client.chat(
+            model=model_name,
+            messages=formatted_messages,
+            options={"temperature": temperature},
+        )
+    else:
+        response = ollama.chat(
+            model=model_name,
+            messages=formatted_messages,
+            options={"temperature": temperature},
+        )
 
     tokens_used = 0
     if "prompt_eval_count" in response and "eval_count" in response:
@@ -46,7 +60,8 @@ def chat_with_ollama(model_name, messages, temperature):
 
 
 def proponent_node(state: DebateState):
-    model_name = "my-gemma"
+    model_name = state.get("model_name", "my-gemma")
+    api_token = state.get("api_token", "")
     system_prompt = "You are an optimistic advocate. Support the topic with logic and enthusiasm. Be brief."
 
     current_messages = [SystemMessage(content=system_prompt)] + state["messages"]
@@ -55,7 +70,7 @@ def proponent_node(state: DebateState):
     # We add the "human" instruction for the agent
     current_messages.append(HumanMessage(content=pro_input))
 
-    response, tokens = chat_with_ollama(model_name, current_messages, state["pro_temp"])
+    response, tokens = chat_with_ollama(model_name, current_messages, state["pro_temp"], api_token=api_token)
 
     print(f"PRO (Tokens: {tokens}): {response}\n")
 
@@ -67,7 +82,8 @@ def proponent_node(state: DebateState):
 
 
 def opponent_node(state: DebateState):
-    model_name = "my-gemma"
+    model_name = state.get("model_name", "my-gemma")
+    api_token = state.get("api_token", "")
     system_prompt = "You are a skeptical critic. Find flaws in the opponent's logic and argue against the topic. Be brief."
 
     current_messages = [SystemMessage(content=system_prompt)] + state["messages"]
@@ -75,7 +91,7 @@ def opponent_node(state: DebateState):
 
     current_messages.append(HumanMessage(content=con_input))
 
-    response, tokens = chat_with_ollama(model_name, current_messages, state["con_temp"])
+    response, tokens = chat_with_ollama(model_name, current_messages, state["con_temp"], api_token=api_token)
 
     print(f"CON (Tokens: {tokens}): {response}\n")
 
@@ -89,7 +105,8 @@ def judge_node(state: DebateState):
     if state["round_count"] >= state["max_rounds"]:
         return {"should_continue": False, "judge_reason": "Maximum rounds reached."}
 
-    model_name = "my-gemma"
+    model_name = state.get("model_name", "my-gemma")
+    api_token = state.get("api_token", "")
     system_prompt = "You are a neutral judge who can make reasonable judgments on practical matters. You can make a judgment based on the arguments presented if enough information has been provided. When asked if the debate should continue, provide a brief explanation of your reasoning."
 
     judge_prompt = """
@@ -119,7 +136,7 @@ def judge_node(state: DebateState):
     current_messages = [SystemMessage(content=system_prompt)] + state["messages"]
     current_messages.append(HumanMessage(content=judge_prompt))
 
-    response, tokens = chat_with_ollama(model_name, current_messages, state["judge_temp"])
+    response, tokens = chat_with_ollama(model_name, current_messages, state["judge_temp"], api_token=api_token)
 
     print(f"Judge's decision: {response}")
 
@@ -136,7 +153,8 @@ def judge_node(state: DebateState):
 
 
 def final_judge_node(state: DebateState):
-    model_name = "my-gemma"
+    model_name = state.get("model_name", "my-gemma")
+    api_token = state.get("api_token", "")
     system_prompt = "You are a neutral judge. Summarize the key points of both sides and declare a logical winner."
 
     judge_input = "Provide your final judgment based on all arguments presented. Summarize the key points of both sides and declare a logical winner."
@@ -144,7 +162,7 @@ def final_judge_node(state: DebateState):
     current_messages = [SystemMessage(content=system_prompt)] + state["messages"]
     current_messages.append(HumanMessage(content=judge_input))
 
-    response, tokens = chat_with_ollama(model_name, current_messages, state["judge_temp"])
+    response, tokens = chat_with_ollama(model_name, current_messages, state["judge_temp"], api_token=api_token)
 
     print(f"--- FINAL JUDGMENT (after {state['round_count']} rounds) ---")
     print(f"--- JUDGE'S VERDICT (Tokens: {tokens}) ---\n{response}")
@@ -162,7 +180,7 @@ def router(state: DebateState):
         return "final_judge"
 
 
-def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10):
+def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10, model_name="my-gemma", api_token=""):
     # Initialize the graph
     workflow = StateGraph(DebateState)
 
@@ -208,7 +226,9 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10)
         "judge_temp": judge_temp,
         "should_continue": True,
         "judge_reason": "",
-        "final_verdict": ""
+        "final_verdict": "",
+        "model_name": model_name,
+        "api_token": api_token
     }
 
     # Run the graph

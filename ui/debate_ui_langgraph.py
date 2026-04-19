@@ -3,8 +3,9 @@ import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from debate_agents_langgraph import DebateState, proponent_node, opponent_node, judge_node, final_judge_node, router
 from langgraph.graph import StateGraph, START, END
+from config_utils import load_config, save_config
 
-def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3, live=True):
+def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3, model_name="my-gemma", api_token="", live=True):
     # Create placeholder for live updates
     debate_placeholder = st.empty() if live else None
 
@@ -109,7 +110,9 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
         "judge_temp": judge_temp,
         "should_continue": True,
         "judge_reason": "",
-        "final_verdict": ""
+        "final_verdict": "",
+        "model_name": model_name,
+        "api_token": api_token
     }
 
     # We use a stream to capture all intermediate states if we wanted to,
@@ -121,7 +124,8 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
         "final_judgment": final_state["final_verdict"],
         "total_tokens": final_state["total_tokens"],
         "rounds": final_state["round_count"],
-        "topic": topic
+        "topic": topic,
+        "model_name": final_state.get("model_name", "Unknown")
     }
     st.session_state.debate_results = results
 
@@ -131,12 +135,15 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
         col1, col2, col3 = st.columns(3)
         col1.metric("Rounds Completed", final_state["round_count"])
         col2.metric("Total Tokens Used", final_state["total_tokens"])
-        col3.metric("Model Used", "my-gemma")
+        col3.metric("Model Used", final_state.get("model_name", "Unknown"))
 
     return results
 
 def main():
     st.set_page_config(page_title="Debate AI (LangGraph)", page_icon="🗣️", layout="wide")
+
+    # Load config
+    config = load_config()
     st.title("🗣️ AI Debate Arena (LangGraph Version)")
     st.markdown(
         "Watch two AI agents debate any topic with a judge overseeing the discussion (using LangGraph)!"
@@ -149,6 +156,13 @@ def main():
 
     with st.sidebar:
         st.header("⚙️ Settings")
+
+        st.subheader("Ollama Configuration")
+        model_name = st.text_input("Model Name", value=config.get("model_name", "my-gemma"))
+        api_token = st.text_input("API Token (optional)", value=config.get("api_token", ""), type="password")
+
+        st.divider()
+        st.subheader("Debate Parameters")
         max_rounds = st.slider("Maximum Rounds", 1, 10, 3)
         pro_temp = st.slider("Proponent Creativity", 0.0, 1.0, 0.9)
         con_temp = st.slider("Opponent Creativity", 0.0, 1.0, 0.7)
@@ -161,12 +175,15 @@ def main():
 
     if st.button("🚀 Start Debate", type="primary"):
         if topic.strip():
+            # Save config
+            save_config({"model_name": model_name, "api_token": api_token})
+
             if st.session_state.live_updates:
-                run_debate_graph(topic, pro_temp, con_temp, judge_temp, max_rounds, live=True)
+                run_debate_graph(topic, pro_temp, con_temp, judge_temp, max_rounds, model_name=model_name, api_token=api_token, live=True)
             else:
                 with st.spinner("Debate in progress..."):
                     try:
-                        run_debate_graph(topic, pro_temp, con_temp, judge_temp, max_rounds, live=False)
+                        run_debate_graph(topic, pro_temp, con_temp, judge_temp, max_rounds, model_name=model_name, api_token=api_token, live=False)
                     except Exception as e:
                         st.error(f"Error running debate: {str(e)}")
         else:
@@ -211,7 +228,7 @@ def main():
         col1, col2, col3 = st.columns(3)
         col1.metric("Rounds Completed", results["rounds"])
         col2.metric("Total Tokens Used", results["total_tokens"])
-        col3.metric("Model Used", "my-gemma")
+        col3.metric("Model Used", results.get("model_name", "Unknown"))
 
 if __name__ == "__main__":
     main()

@@ -3,13 +3,15 @@ import time
 import ollama
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from config_utils import load_config, save_config
 
 
 class DebateAgent:
-    def __init__(self, model_name, system_prompt, temperature=0.8):
+    def __init__(self, model_name, system_prompt, temperature=0.8, api_token=None):
         self.model_name = model_name
         self.system_prompt = system_prompt
         self.temperature = temperature
+        self.api_token = api_token
 
     def respond(self, input_text, history):
         """Generate a response based on the input and conversation history"""
@@ -29,11 +31,20 @@ class DebateAgent:
         messages.append({"role": "user", "content": input_text})
 
         # Make direct call to Ollama to get token information
-        response = ollama.chat(
-            model=self.model_name,
-            messages=messages,
-            options={"temperature": self.temperature},
-        )
+        if self.api_token:
+            from ollama import Client
+            client = Client(headers={"Authorization": f"Bearer {self.api_token}"})
+            response = client.chat(
+                model=self.model_name,
+                messages=messages,
+                options={"temperature": self.temperature},
+            )
+        else:
+            response = ollama.chat(
+                model=self.model_name,
+                messages=messages,
+                options={"temperature": self.temperature},
+            )
 
         # Extract token usage if available
         tokens_used = 0
@@ -81,32 +92,35 @@ def should_continue_debate(judge_agent, conversation_history, max_rounds=3):
         return True, judge_response  # Continue the debate
 
 
-def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
-    model_name = "my-gemma"
+def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3, model_name="my-gemma", api_token=""):
 
     # Create debate agents with different personas and temperatures
     pro_agent = DebateAgent(
         model_name,
         "You are an optimistic advocate. Support the topic with logic and enthusiasm. Be brief.",
         pro_temp,
+        api_token=api_token
     )
 
     con_agent = DebateAgent(
         model_name,
         "You are a skeptical critic. Find flaws in the opponent's logic and argue against the topic. Be brief.",
         con_temp,
+        api_token=api_token
     )
 
     judge_agent = DebateAgent(
         model_name,
         "You are a neutral judge who can make reasonable judgments on practical matters. You can make a judgment based on the arguments presented even if they aren't completely exhaustive.",
         judge_temp,
+        api_token=api_token
     )
 
     final_judge_agent = DebateAgent(
         model_name,
         "You are a neutral judge. Summarize the key points of both sides and declare a logical winner.",
         judge_temp,
+        api_token=api_token
     )
 
     # Initialize conversation history
@@ -165,35 +179,39 @@ def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
         "total_tokens": total_tokens,
         "rounds": rounds_run,
         "judge_interim_decisions": judge_decisions,
+        "model_name": model_name
     }
 
 
-def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3):
-    model_name = "my-gemma"
+def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3, model_name="my-gemma", api_token=""):
 
     # Create debate agents with different personas and temperatures
     pro_agent = DebateAgent(
         model_name,
         "You are an optimistic advocate. Support the topic with logic and enthusiasm. Be brief.",
         pro_temp,
+        api_token=api_token
     )
 
     con_agent = DebateAgent(
         model_name,
         "You are a skeptical critic. Find flaws in the opponent's logic and argue against the topic. Be brief.",
         con_temp,
+        api_token=api_token
     )
 
     judge_agent = DebateAgent(
         model_name,
         "You are a neutral judge who can make reasonable judgments on practical matters. You can make a judgment based on the arguments presented if enough information has been provided. When asked if the debate should continue, provide a brief explanation of your reasoning.",
         judge_temp,
+        api_token=api_token
     )
 
     final_judge_agent = DebateAgent(
         model_name,
         "You are a neutral judge. Summarize the key points of both sides and declare a logical winner.",
         judge_temp,
+        api_token=api_token
     )
 
     # Create placeholder for live updates
@@ -294,6 +312,7 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
         "final_judgment": judge_response,
         "total_tokens": total_tokens,
         "rounds": rounds_run,
+        "model_name": model_name
     }
 
     # Display statistics summary
@@ -302,12 +321,15 @@ def run_debate_live(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_round
     col1, col2, col3 = st.columns(3)
     col1.metric("Rounds Completed", rounds_run)
     col2.metric("Total Tokens Used", total_tokens)
-    col3.metric("Model Used", "my-gemma")
+    col3.metric("Model Used", model_name)
 
 
 def main():
 
     st.set_page_config(page_title="Debate AI", page_icon="🗣️", layout="wide")
+
+    # Load config
+    config = load_config()
 
     st.title("🗣️ AI Debate Arena")
     st.markdown(
@@ -323,6 +345,13 @@ def main():
     # Sidebar for settings
     with st.sidebar:
         st.header("⚙️ Settings")
+
+        st.subheader("Ollama Configuration")
+        model_name = st.text_input("Model Name", value=config.get("model_name", "my-gemma"))
+        api_token = st.text_input("API Token (optional)", value=config.get("api_token", ""), type="password")
+
+        st.divider()
+        st.subheader("Debate Parameters")
         max_rounds = st.slider("Maximum Rounds", 1, 10, 3)
         pro_temp = st.slider("Proponent Creativity", 0.0, 1.0, 0.9)
         con_temp = st.slider("Opponent Creativity", 0.0, 1.0, 0.7)
@@ -345,6 +374,9 @@ def main():
 
     if st.button("🚀 Start Debate", type="primary"):
         if topic.strip():
+            # Save config
+            save_config({"model_name": model_name, "api_token": api_token})
+
             if st.session_state.live_updates:
                 # Run debate with live updates
                 run_debate_live(
@@ -353,6 +385,8 @@ def main():
                     con_temp=con_temp,
                     judge_temp=judge_temp,
                     max_rounds=max_rounds,
+                    model_name=model_name,
+                    api_token=api_token
                 )
             else:
                 with st.spinner("Debate in progress..."):
@@ -363,6 +397,8 @@ def main():
                             con_temp=con_temp,
                             judge_temp=judge_temp,
                             max_rounds=max_rounds,
+                            model_name=model_name,
+                            api_token=api_token
                         )
                         st.session_state.debate_results = results
                     except Exception as e:
@@ -432,7 +468,7 @@ def main():
             col1, col2, col3 = st.columns(3)
             col1.metric("Rounds Completed", results["rounds"])
             col2.metric("Total Tokens Used", results["total_tokens"])
-            col3.metric("Model Used", "my-gemma")
+            col3.metric("Model Used", results.get("model_name", "Unknown"))
 
 
 if __name__ == "__main__":
