@@ -36,8 +36,7 @@ def chat_with_ollama(model_name, messages, temperature, api_token=None):
         # If API token is provided, we assume it's for a remote Ollama-compatible API
         # and we might need to set it in the headers.
         # Note: Ollama library's Client can take headers.
-        from ollama import Client
-        client = Client(headers={"Authorization": f"Bearer {api_token}"})
+        client = ollama.Client(headers={"Authorization": f"Bearer {api_token}"})
         response = client.chat(
             model=model_name,
             messages=formatted_messages,
