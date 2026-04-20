@@ -1,4 +1,4 @@
-# AI Debate System
+# AI Debate Arena
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -27,34 +27,12 @@ A system for running automated debates between AI agents with a judge to evaluat
 
 Run the main debate script:
 ```
-python debate_agents_lc.py
+python debate_agents_langchain.py
 ```
 
 *Note: Topics and debate parameters (such as creativity levels and max rounds) are configured directly in the code at the bottom of the script.*
 
-You can also run a simpler version of the debate logic:
-```
-python debate_agents_simple.py
-```
-
 ### Web UI Version
-
-A web-based UI is available in the `ui` directory:
-
-1. Navigate to the ui directory:
-   ```
-   cd ui
-   ```
-
-2. Install UI dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-
-3. Run the Streamlit app:
-   ```
-   streamlit run debate_ui.py
-   ```
 
 Alternatively, from the main directory:
 ```
