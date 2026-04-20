@@ -98,6 +98,7 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
     workflow.add_edge("final_judge", END)
 
     app = workflow.compile()
+    print(app.get_graph().draw_mermaid())
 
     initial_state = {
         "topic": topic,

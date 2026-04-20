@@ -13,7 +13,7 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Path to the UI script
-    ui_script = os.path.join(script_dir, "ui", "debate_ui.py")
+    ui_script = os.path.join(script_dir, "ui", "debate_ui_langchain.py")
 
     # Check if the UI script exists
     if not os.path.exists(ui_script):
