@@ -77,7 +77,7 @@ The UI allows you to:
 ## Configuration
 
 Key parameters that can be adjusted in the UI or code:
-- `max_rounds`: Maximum number of debate rounds (default: 3-5).
+- `max_rounds`: Maximum number of debate rounds (default: 3).
 - `pro_temp`: Proponent creativity level (0.0-1.0, default: 0.9).
 - `con_temp`: Opponent creativity level (0.0-1.0, default: 0.7).
 - `judge_temp`: Judge strictness (0.0-1.0, default: 0.3).
