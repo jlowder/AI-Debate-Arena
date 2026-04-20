@@ -4,10 +4,8 @@ import os
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
-DEFAULT_CONFIG = {
-    "model_name": "my-gemma",
-    "api_token": ""
-}
+DEFAULT_CONFIG = {"model_name": "gemma4:e2b", "api_token": ""}
+
 
 def load_config():
     if os.path.exists(CONFIG_FILE):
@@ -22,6 +20,7 @@ def load_config():
         except (json.JSONDecodeError, IOError):
             return DEFAULT_CONFIG.copy()
     return DEFAULT_CONFIG.copy()
+
 
 def save_config(config):
     try:

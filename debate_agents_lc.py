@@ -82,7 +82,7 @@ def should_continue_debate(judge_agent, conversation_history, max_rounds=10):
 
 
 def run_debate(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=10):
-    model_name = "my-gemma"
+    model_name = "gemma4:e2b"
 
     # Create debate agents with different personas and temperatures
     pro_agent = DebateAgent(

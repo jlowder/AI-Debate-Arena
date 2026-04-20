@@ -1,11 +1,30 @@
 import time
+
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from debate_agents_langgraph import DebateState, proponent_node, opponent_node, judge_node, final_judge_node, router
-from langgraph.graph import StateGraph, START, END
-from config_utils import load_config, save_config
+from langgraph.graph import END, START, StateGraph
 
-def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_rounds=3, model_name="my-gemma", api_token="", live=True):
+from config_utils import load_config, save_config
+from debate_agents_langgraph import (
+    DebateState,
+    final_judge_node,
+    judge_node,
+    opponent_node,
+    proponent_node,
+    router,
+)
+
+
+def run_debate_graph(
+    topic,
+    pro_temp=0.8,
+    con_temp=0.8,
+    judge_temp=0.5,
+    max_rounds=3,
+    model_name="gemma4:e2b",
+    api_token="",
+    live=True,
+):
     # Create placeholder for live updates
     debate_placeholder = st.empty() if live else None
 
@@ -47,7 +66,10 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
             # Before calling judge, show "Checking..."
             nonlocal current_content
             if state["round_count"] < state["max_rounds"]:
-                check_content = current_content + f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>Checking if debate should continue...</div>\n\n"
+                check_content = (
+                    current_content
+                    + f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge (Interim Decision):</strong><br>Checking if debate should continue...</div>\n\n"
+                )
                 debate_placeholder.markdown(check_content, unsafe_allow_html=True)
                 time.sleep(1)
 
@@ -79,7 +101,10 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
 
         if live:
             # Remove "Generating..."
-            current_content = current_content.replace(f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge:</strong><br>Generating final judgment...</div>\n\n", "")
+            current_content = current_content.replace(
+                f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge:</strong><br>Generating final judgment...</div>\n\n",
+                "",
+            )
             current_content += f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin-bottom: 10px;'><strong>Judge:</strong><br>{res['final_verdict']}</div>\n\n"
             debate_placeholder.markdown(current_content, unsafe_allow_html=True)
         return res
@@ -94,7 +119,9 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
     workflow.add_edge(START, "proponent")
     workflow.add_edge("proponent", "opponent")
     workflow.add_edge("opponent", "judge")
-    workflow.add_conditional_edges("judge", router, {"proponent": "proponent", "final_judge": "final_judge"})
+    workflow.add_conditional_edges(
+        "judge", router, {"proponent": "proponent", "final_judge": "final_judge"}
+    )
     workflow.add_edge("final_judge", END)
 
     app = workflow.compile()
@@ -102,7 +129,11 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
 
     initial_state = {
         "topic": topic,
-        "messages": [HumanMessage(content=f"The topic is: <strong>{topic}</strong> Start the debate.")],
+        "messages": [
+            HumanMessage(
+                content=f"The topic is: <strong>{topic}</strong> Start the debate."
+            )
+        ],
         "round_count": 0,
         "max_rounds": max_rounds,
         "total_tokens": 0,
@@ -113,7 +144,7 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
         "judge_reason": "",
         "final_verdict": "",
         "model_name": model_name,
-        "api_token": api_token
+        "api_token": api_token,
     }
 
     # We use a stream to capture all intermediate states if we wanted to,
@@ -126,7 +157,7 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
         "total_tokens": final_state["total_tokens"],
         "rounds": final_state["round_count"],
         "topic": topic,
-        "model_name": final_state.get("model_name", "Unknown")
+        "model_name": final_state.get("model_name", "Unknown"),
     }
     st.session_state.debate_results = results
 
@@ -139,6 +170,7 @@ def run_debate_graph(topic, pro_temp=0.8, con_temp=0.8, judge_temp=0.5, max_roun
         col3.metric("Model Used", final_state.get("model_name", "Unknown"))
 
     return results
+
 
 def main():
     st.set_page_config(page_title="Debate AI (LangGraph)", page_icon="🗣️", layout="wide")
@@ -159,8 +191,12 @@ def main():
         st.header("⚙️ Settings")
 
         st.subheader("Ollama Configuration")
-        model_name = st.text_input("Model Name", value=config.get("model_name", "my-gemma"))
-        api_token = st.text_input("API Token (optional)", value=config.get("api_token", ""), type="password")
+        model_name = st.text_input(
+            "Model Name", value=config.get("model_name", "gemma4:e2b")
+        )
+        api_token = st.text_input(
+            "API Token (optional)", value=config.get("api_token", ""), type="password"
+        )
 
         st.divider()
         st.subheader("Debate Parameters")
@@ -172,7 +208,9 @@ def main():
         st.divider()
         st.checkbox("Show live debate updates", key="live_updates")
 
-    topic = st.text_input("Enter debate topic:", "C++ is better than Python for security.")
+    topic = st.text_input(
+        "Enter debate topic:", "C++ is better than Python for security."
+    )
 
     if st.button("🚀 Start Debate", type="primary"):
         if topic.strip():
@@ -180,11 +218,29 @@ def main():
             save_config({"model_name": model_name, "api_token": api_token})
 
             if st.session_state.live_updates:
-                run_debate_graph(topic, pro_temp, con_temp, judge_temp, max_rounds, model_name=model_name, api_token=api_token, live=True)
+                run_debate_graph(
+                    topic,
+                    pro_temp,
+                    con_temp,
+                    judge_temp,
+                    max_rounds,
+                    model_name=model_name,
+                    api_token=api_token,
+                    live=True,
+                )
             else:
                 with st.spinner("Debate in progress..."):
                     try:
-                        run_debate_graph(topic, pro_temp, con_temp, judge_temp, max_rounds, model_name=model_name, api_token=api_token, live=False)
+                        run_debate_graph(
+                            topic,
+                            pro_temp,
+                            con_temp,
+                            judge_temp,
+                            max_rounds,
+                            model_name=model_name,
+                            api_token=api_token,
+                            live=False,
+                        )
                     except Exception as e:
                         st.error(f"Error running debate: {str(e)}")
         else:
@@ -230,6 +286,7 @@ def main():
         col1.metric("Rounds Completed", results["rounds"])
         col2.metric("Total Tokens Used", results["total_tokens"])
         col3.metric("Model Used", results.get("model_name", "Unknown"))
+
 
 if __name__ == "__main__":
     main()

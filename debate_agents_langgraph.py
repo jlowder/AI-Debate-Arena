@@ -62,7 +62,7 @@ def chat_with_ollama(model_name, messages, temperature, api_token=None):
 
 
 def proponent_node(state: DebateState):
-    model_name = state.get("model_name", "my-gemma")
+    model_name = state.get("model_name", "gemma4:e2b")
     api_token = state.get("api_token", "")
     system_prompt = "You are an optimistic advocate. Support the topic with logic and enthusiasm. Be brief."
 
@@ -86,7 +86,7 @@ def proponent_node(state: DebateState):
 
 
 def opponent_node(state: DebateState):
-    model_name = state.get("model_name", "my-gemma")
+    model_name = state.get("model_name", "gemma4:e2b")
     api_token = state.get("api_token", "")
     system_prompt = "You are a skeptical critic. Find flaws in the opponent's logic and argue against the topic. Be brief."
 
@@ -111,7 +111,7 @@ def judge_node(state: DebateState):
     if state["round_count"] >= state["max_rounds"]:
         return {"should_continue": False, "judge_reason": "Maximum rounds reached."}
 
-    model_name = state.get("model_name", "my-gemma")
+    model_name = state.get("model_name", "gemma4:e2b")
     api_token = state.get("api_token", "")
     system_prompt = "You are a neutral judge who can make reasonable judgments on practical matters. You can make a judgment based on the arguments presented if enough information has been provided. When asked if the debate should continue, provide a brief explanation of your reasoning."
 
@@ -161,7 +161,7 @@ def judge_node(state: DebateState):
 
 
 def final_judge_node(state: DebateState):
-    model_name = state.get("model_name", "my-gemma")
+    model_name = state.get("model_name", "gemma4:e2b")
     api_token = state.get("api_token", "")
     system_prompt = "You are a neutral judge. Summarize the key points of both sides and declare a logical winner."
 
@@ -193,7 +193,7 @@ def run_debate(
     con_temp=0.8,
     judge_temp=0.5,
     max_rounds=10,
-    model_name="my-gemma",
+    model_name="gemma4:e2b",
     api_token="",
 ):
     # Initialize the graph

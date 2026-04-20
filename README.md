@@ -15,7 +15,7 @@ A system for running automated debates between AI agents with a judge to evaluat
 
 ## Installation
 
-1. Ensure you have Ollama installed and running with the "my-gemma" model available
+1. Ensure you have Ollama installed with at least one model available
 2. Install Python dependencies:
    ```
    pip install -r requirements.txt
