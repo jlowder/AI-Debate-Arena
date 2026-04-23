@@ -2,9 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.9_3.10_3.11-blueviolet.svg)](https://www.python.org/)
-![Ollama](https://img.shields.io/badge/ollama-%23000000.svg?style=for-the-badge&logo=ollama&logoColor=white)
-![LangGraph](https://img.shields.io/badge/langgraph-%231C3C3C.svg?style=for-the-badge&logo=langgraph&logoColor=white)
-![LangChain](https://img.shields.io/badge/langchain-%231C3C3C.svg?style=for-the-badge&logo=langchain&logoColor=white)
+![Ollama](https://img.shields.io/badge/ollama-%23000000.svg?style=Plastic&logo=ollama&logoColor=white)
+![LangGraph](https://img.shields.io/badge/langgraph-%231C3C3C.svg?style=Flat&logo=langgraph&logoColor=white)
+![LangChain](https://img.shields.io/badge/langchain-%231C3C3C.svg?style=Social&logo=langchain&logoColor=white)
 
 A system for running automated debates between AI agents with a judge to evaluate the arguments. This project features two implementations: one using standard LangChain and another using LangGraph for workflow orchestration.
 
