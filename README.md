@@ -1,7 +1,10 @@
 # AI Debate Arena
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/-3.9_3.10_3.11-blueviolet.svg)](https://www.python.org/)
+[![Ollama](https://img.shields.io/badge/Ollama-?labelColor=gray&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEiPjxjaXJjbGUgY3g9IjI2NSIgeT0iMjY1IiByPSIyNjUiLz48dGV4dCBkZWFuZC1iYXNlbGluZT0ibWlkZGxlIiB4bWw6c3BhY2U9InRyYW5zZmVyIC0xMDAiIHJ4PSIxMCIgcnk9IjEwIiBzdHlsZT0iZmlsbDpidXR0OyBmb250LWZhbWlseTpobXQtcG9zaXRvcnksIGhlbHZldGljZSwgYm9iZXItYm9sZCxib2xkLCBtb2RsbGE7IGZvbnQtc3R5bGU6bm9ybWFsOyBmb250LXdlaWdodDpobWwtNzI7IGZvbnQtd2VpZ2h0LWluYygxKToiaG1sLTE1MCIgeD0iMjEwIiB5PSIyNTAiIGZpbGw9ImJsYWNrIj5PbGxhbWE8L3RleHQ+PC9zdmc+)](https://ollama.ai/)
+[![LangChain](https://img.shields.io/badge/LangChain-0x14bc71-blueviolet.svg)](https://python.langchain.com/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-%2300C087-orange.svg)](https://langgraph.ai/)
 
 A system for running automated debates between AI agents with a judge to evaluate the arguments. This project features two implementations: one using standard LangChain and another using LangGraph for workflow orchestration.
 
